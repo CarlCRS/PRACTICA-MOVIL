@@ -12,12 +12,12 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@capacitor-community/speech-recognition": "^7.0.1",
     "@capacitor/android": "^8.5.3",
     "@capacitor/core": "^8.5.3",
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/preferences": "^8.0.1",
     "@capgo/camera-preview": "^8.12.1",
+    "@capgo/capacitor-speech-recognition": "^8.4.3",
     "@elevenlabs/elevenlabs-js": "^2.71.0",
     "@ionic/react": "^9.0.0",
     "@ionic/react-router": "^9.0.0",
