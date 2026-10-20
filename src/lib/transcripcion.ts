@@ -1,10 +1,12 @@
-// TRANSCRIPCIÓN: @capacitor-community/speech-recognition (nativo)
-// + fallback Web Speech API en navegador.
-// Nativo: Android SpeechRecognizer / iOS SFSpeechRecognizer (gratis, tiempo real).
-// Si necesitas transcribir un .m4a ya grabado con precisión total,
-// la ruta es nube: enviar base64 a Whisper/Google STT (requiere API key).
+// TRANSCRIPCIÓN EN VIVO: @capgo/capacitor-speech-recognition (nativo)
+// Fork mantenido del community con la misma API, alineado a Capacitor 8
+// (el community iba en v7 contra nuestro core v8), más fixes de crashes
+// y evento 'error' para diagnóstico real.
+// Nativo: Android SpeechRecognizer / iOS SFSpeechRecognizer.
+// En web el plugin NO existe (lanza "not implemented"), así que primero
+// se pregunta la plataforma y se usa Web Speech API como fallback.
 import { Capacitor } from "@capacitor/core";
-import { SpeechRecognition } from "@capacitor-community/speech-recognition";
+import { SpeechRecognition } from "@capgo/capacitor-speech-recognition";
 
 declare global {
   interface Window {
@@ -15,18 +17,28 @@ declare global {
 
 // Escucha una frase y devuelve el texto. language: 'es-ES' | 'es-CO' | etc.
 export async function transcribirUnaFrase(language = "es-ES"): Promise<string> {
-  // 1. Permisos (en Android = RECORD_AUDIO, en iOS = micro + speech)
+  // 1. Web (npm run dev) primero: aquí el plugin nativo no existe.
+  // (Antes el requestPermissions() nativo iba antes y en web reventaba
+  // con "Method not implemented on web" sin llegar nunca al fallback.)
+  if (!Capacitor.isNativePlatform()) {
+    return transcribirWeb(language);
+  }
+
+  // 2. Nativo: ¿el servicio existe en este equipo?
+  const disp = await SpeechRecognition.available();
+  if (!disp.available) {
+    throw new Error(
+      "Reconocimiento de voz no disponible en este equipo (sin servicio de Google/Apple).",
+    );
+  }
+
+  // 3. Permisos (Android = RECORD_AUDIO, iOS = micro + speech)
   const perm = await SpeechRecognition.requestPermissions();
   if (perm.speechRecognition !== "granted") {
     throw new Error("Permiso de reconocimiento denegado");
   }
 
-  // 2. Web (npm run dev): el plugin no tiene micrófono real -> Web Speech API
-  if (!Capacitor.isNativePlatform()) {
-    return transcribirWeb(language);
-  }
-
-  // 3. Nativo: popup:false = sin diálogo del sistema, control desde tu UI
+  // 4. Escucha una frase. popup:false = sin diálogo del sistema.
   const r = await SpeechRecognition.start({
     language,
     maxResults: 1,
@@ -38,7 +50,8 @@ export async function transcribirUnaFrase(language = "es-ES"): Promise<string> {
   if (!texto) throw new Error("No se entendió, intenta de nuevo");
   return texto;
 }
-// paa que se pueda usar en el navegador
+
+// Fallback navegador (Chrome + localhost/https + permiso de micro)
 function transcribirWeb(language: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition;
