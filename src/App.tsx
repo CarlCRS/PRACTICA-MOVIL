@@ -14,12 +14,13 @@ import {
   setupIonicReact,
 } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
-import { bookOutline, cameraOutline, hardwareChipOutline, listOutline, micOutline } from 'ionicons/icons';
+import { bookOutline, cameraOutline, documentTextOutline, hardwareChipOutline, listOutline, micOutline } from 'ionicons/icons';
 import Tareas from './pages/Tareas';
 import Conceptos from './pages/Conceptos';
 import Plugins from './pages/Plugins';
 import Grabadora from './pages/Grabadora';
 import Camara from './pages/Camara';
+import PlanMedico from './pages/PlanMedico';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -49,6 +50,7 @@ const App: React.FC = () => (
             <Route path="/plugins" element={<Plugins />} />
             <Route path="/grabadora" element={<Grabadora />} />
             <Route path="/camara" element={<Camara />} />
+            <Route path="/plan-medico" element={<PlanMedico />} />
             <Route path="/" element={<Navigate to="/tareas" />} />
           </Routes>
         </IonRouterOutlet>
@@ -74,6 +76,10 @@ const App: React.FC = () => (
           <IonTabButton tab="camara" href="/camara">
             <IonIcon icon={cameraOutline} />
             <IonLabel>Cámara</IonLabel>
+          </IonTabButton>
+          <IonTabButton tab="plan-medico" href="/plan-medico">
+            <IonIcon icon={documentTextOutline} />
+            <IonLabel>Plan</IonLabel>
           </IonTabButton>
         </IonTabBar>
       </IonTabs>
