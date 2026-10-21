@@ -49,8 +49,16 @@ android {
 repositories {
   google()
   mavenCentral()
+  // Para compilar el plugin necesita resolver el .aar él mismo.
+  // La app lo resuelve con el flatDir que Capacitor genera en app/build.gradle.
+  flatDir { dirs "${rootDir}/app/libs", "${projectDir}/libs" }
 }
 
+// Capacitor genera en android/app/build.gradle:
+//   flatDir { dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs' }
+// Así que android/app/libs/ ya es un repositorio: el .aar se resuelve solo,
+// sin declarar un módulo en settings.gradle.
+def appLibsAar = file("${rootDir}/app/libs/facerecognitionsdk.aar")
 def bundledAar = file("${projectDir}/libs/facerecognitionsdk.aar")
 
 dependencies {
@@ -65,14 +73,15 @@ dependencies {
   implementation "androidx.camera:camera-lifecycle:$camerax"
   implementation "androidx.camera:camera-view:$camerax"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.22"
-  if (bundledAar.exists()) {
-    implementation files(bundledAar)
+  if (appLibsAar.exists() || bundledAar.exists()) {
+    implementation(name: 'facerecognitionsdk', ext: 'aar')
   } else if (findProject(':libfacesdk') != null) {
     implementation project(path: ':libfacesdk')
   } else {
     throw new GradleException(
-      "Missing facerecognitionsdk.aar.\n" +
-      "Place it at android/libs/facerecognitionsdk.aar (or example/android/libfacesdk/ for the demo)."
+      "Falta el runtime de FacePlugin (facerecognitionsdk.aar, ~455 MB).\n" +
+      "Cópialo en android/app/libs/facerecognitionsdk.aar y vuelve a compilar.\n" +
+      "Descarga: https://drive.google.com/drive/folders/1kpzYVv9Gbm_pEpDe9-x7FGB4NWZzvez0"
     )
   }
   testImplementation "junit:junit:$junitVersion"

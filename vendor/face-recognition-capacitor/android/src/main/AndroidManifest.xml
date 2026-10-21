@@ -1,3 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- El motor ONNX necesita heap grande. Declararlo aquí hace que se fusione
+         en el manifest de la app: no hay que tocar AndroidManifest.xml a mano. -->
+    <application android:largeHeap="true" />
 </manifest>
