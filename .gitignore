@@ -6,12 +6,16 @@ node_modules/
 .pnp.js
 
 # build web (se regenera con npm run build)
-dist/
+# OJO: con barra inicial = solo el dist/ de la raíz. Sin ella también ignoraría
+# el dist/ del plugin vendorizado, que SÍ debe versionarse.
+/dist/
 
-# plataformas nativas (se regeneran con npx cap add android/ios + npx cap sync)
-# OJO: si regeneras, reaplica los cambios manuales:
-#  - android/app/src/main/AndroidManifest.xml (permisos CAMERA, RECORD_AUDIO)
-#  - android/app/build.gradle (proguard-android-optimize.txt)
+# plataformas nativas (NO se versionan: se regeneran con `npx cap add android`)
+# OJO: `cap add` crea la plantilla limpia. Hay que reaplicar a mano:
+#  - AndroidManifest.xml (permisos + largeHeap)
+#  - settings.gradle + libfacesdk/ (módulo envoltorio del .aar de FacePlugin)
+#  - app/build.gradle (proguard-android-optimize.txt)
+# Ver docs/integracion-faceplugin.md
 android/
 ios/
 
@@ -27,6 +31,10 @@ cypress/downloads/
 .env.development.local
 .env.test.local
 .env.production.local
+
+# artefactos de build del plugin vendorizado (Gradle compila ahí por cap sync)
+vendor/*/android/build/
+vendor/*/android/.gradle/
 
 # misc
 .DS_Store

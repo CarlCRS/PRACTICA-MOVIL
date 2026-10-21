@@ -109,6 +109,21 @@ export default function Plugins() {
 
         <IonCard>
           <IonCardHeader>
+            <IonCardTitle>4. SDK biométrico (FacePlugin)</IonCardTitle>
+          </IonCardHeader>
+          <IonCardContent>
+            <p>
+              Integración de un SDK nativo cerrado: 455 MB de modelos ONNX y
+              licencia offline atada al <code>applicationId</code>.
+            </p>
+            <IonButton expand="block" fill="outline" routerLink="/rostro">
+              Abrir demo de rostro
+            </IonButton>
+          </IonCardContent>
+        </IonCard>
+
+        <IonCard>
+          <IonCardHeader>
             <IonCardTitle>Log</IonCardTitle>
           </IonCardHeader>
           <IonCardContent>

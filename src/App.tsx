@@ -21,6 +21,7 @@ import Plugins from './pages/Plugins';
 import Grabadora from './pages/Grabadora';
 import Camara from './pages/Camara';
 import PlanMedico from './pages/PlanMedico';
+import Rostro from './pages/Rostro';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -51,6 +52,8 @@ const App: React.FC = () => (
             <Route path="/grabadora" element={<Grabadora />} />
             <Route path="/camara" element={<Camara />} />
             <Route path="/plan-medico" element={<PlanMedico />} />
+            {/* Sin pestaña propia: se entra desde la tarjeta de Plugins */}
+            <Route path="/rostro" element={<Rostro />} />
             <Route path="/" element={<Navigate to="/tareas" />} />
           </Routes>
         </IonRouterOutlet>

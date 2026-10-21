@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
+    "@capacitor/camera": "^8.2.6",
     "@capacitor/core": "^8.5.3",
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/preferences": "^8.0.1",
@@ -22,6 +23,7 @@
     "@ionic/react": "^9.0.0",
     "@ionic/react-router": "^9.0.0",
     "capacitor-voice-recorder": "^7.0.6",
+    "face-recognition-capacitor": "file:vendor/face-recognition-capacitor",
     "ionicons": "^8.1.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
