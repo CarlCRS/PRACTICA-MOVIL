@@ -11,13 +11,14 @@ node_modules/
 /dist/
 
 # plataformas nativas (NO se versionan: se regeneran con `npx cap add android`)
-# OJO: `cap add` crea la plantilla limpia. Hay que reaplicar a mano:
+# OJO: las barras iniciales son obligatorias. Sin ellas, `android/` también
+# ignoraría vendor/face-recognition-capacitor/android/ y el plugin llega roto.
 #  - AndroidManifest.xml (permisos + largeHeap)
 #  - settings.gradle + libfacesdk/ (módulo envoltorio del .aar de FacePlugin)
 #  - app/build.gradle (proguard-android-optimize.txt)
 # Ver docs/integracion-faceplugin.md
-android/
-ios/
+/android/
+/ios/
 
 # testing
 coverage/
