@@ -57,7 +57,7 @@ usa `implementation project(':libfacesdk')`. Por eso no hay que tocar su código
 | Archivo | Cambio | Por qué |
 |---|---|---|
 | `AndroidManifest.xml` | `android:largeHeap="true"` | los modelos ONNX no caben en el heap normal |
-| `AndroidManifest.xml` | `CAMERA` | la demo usa `@capacitor/camera` |
+| `AndroidManifest.xml` | `MODIFY_AUDIO_SETTINGS` | único permiso que ningún plugin declara (`CAMERA` y `RECORD_AUDIO` los aporta `@capgo/camera-preview`) |
 | `settings.gradle` + `libfacesdk/` | módulo envoltorio del `.aar` | AGP no acepta `.aar` local directo |
 | `variables.gradle` | `minSdk >= 24` | requisito del SDK |
 | `app/build.gradle` | sin `abiFilters` | el `.aar` trae `arm64-v8a` y `armeabi-v7a` |
@@ -142,9 +142,8 @@ cd android && .\gradlew.bat assembleDebug
     android:largeHeap="true"        <!-- añadir: los modelos ONNX pesan mucho -->
     ...>
 
-<!-- al final, junto a INTERNET -->
-<uses-permission android:name="android.permission.CAMERA" />
-<uses-permission android:name="android.permission.RECORD_AUDIO" />
+<!-- CAMERA y RECORD_AUDIO ya los aporta @capgo/camera-preview al fusionar
+     manifiestos. Este es el único permiso que hay que declarar a mano. -->
 <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 ```
 
