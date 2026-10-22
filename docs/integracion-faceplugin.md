@@ -158,9 +158,44 @@ Lo que **no** viaja y hay que reponer:
 | Qué | Cómo |
 |---|---|
 | `node_modules/` | `npm install` |
-| `.env` (key de ElevenLabs) | copiarlo por USB/gestor de secretos. Nunca commitearlo |
+| `.env` (ElevenLabs + `VITE_FACEPLUGIN_LICENSE_ANDROID`) | copiarlo por USB/gestor de secretos. Nunca commitearlo |
 | `android/app/libs/facerecognitionsdk.aar` (455 MB) | bajar de Drive o copiarlo por USB |
 | SDK/JDK | Android Studio + JDK 21 (`JAVA_HOME`) |
 
 Si el `gradlew` falla con "Unsupported class file major version", es el JDK:
 usa 21, no 26.
+
+## 8. Probar el motor sin licencia propia (key demo)
+
+La key demo del vendor está firmada **solo** para
+`com.faceplugin.facerecognitionsdk`. Para ver el motor funcionando dentro de
+`myapp` sin pedir licencia:
+
+1. En `android/app/build.gradle`, cambia temporalmente:
+
+```groovy
+applicationId "com.faceplugin.facerecognitionsdk"
+```
+
+2. La key va en `.env` (no se commitea):
+
+```
+VITE_FACEPLUGIN_LICENSE_ANDROID=FP1....
+VITE_FACEPLUGIN_LICENSE_IOS=FP1....
+```
+
+Cópiala de `faceplugin-demo/example/src/license.ts` (`ANDROID_LICENSE`).
+
+3. Desinstala el APK de la demo del teléfono: al tener el mismo `package`, una
+   firma distinta hace que `adb install` falle con
+   `INSTALL_FAILED_UPDATE_INCOMPATIBLE`.
+
+4. `npm run build`, `npx cap sync android`, `gradlew assembleDebug`, instala.
+
+`Rostro.tsx` lee la key del `.env` y hace `setActivation()` + `init()` solo. Si
+todo cuadra, el badge pasa a **motor listo**.
+
+Para publicar, vuelve a `com.ejemplo.myapp` y pide una licencia a FacePlugin con
+ese `applicationId` + el machine code que muestra la pantalla. Si con el appId
+correcto sigue devolviendo `1`, la key también valida firma/máquina: toca pedir
+licencia.

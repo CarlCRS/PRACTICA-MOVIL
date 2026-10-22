@@ -5,9 +5,10 @@
 //   2. Activar la licencia     -> setActivation() + init()
 //   3. Usar el motor           -> faceDetection() / templateExtraction()
 //
-// Ojo: sin licencia válida para com.ejemplo.myapp el paso 3 no funciona.
-// La demo pública del SDK trae una key atada a com.faceplugin.facerecognitionsdk.
-import { useEffect, useState } from 'react';
+// Ojo: sin licencia válida el paso 3 no funciona. La key demo del SDK solo
+// sirve para com.faceplugin.facerecognitionsdk (ver docs §8: para probar,
+// applicationId temporal = el de la demo y la key en .env).
+import { useEffect, useState } from "react";
 import {
   IonAccordion,
   IonAccordionGroup,
@@ -32,9 +33,9 @@ import {
   IonTextarea,
   IonTitle,
   IonToolbar,
-} from '@ionic/react';
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-import { Capacitor } from '@capacitor/core';
+} from "@ionic/react";
+import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
+import { Capacitor } from "@capacitor/core";
 import {
   cameraOutline,
   copyOutline,
@@ -42,7 +43,7 @@ import {
   imagesOutline,
   keyOutline,
   shieldCheckmarkOutline,
-} from 'ionicons/icons';
+} from "ionicons/icons";
 import {
   activar,
   codigoMaquina,
@@ -52,20 +53,20 @@ import {
   guardarLicencia,
   leerLicenciaGuardada,
   resumenRostro,
-} from '../lib/rostro';
-import { licenciaDemo } from '../lib/licencia-demo';
-import type { FaceBox } from 'face-recognition-capacitor';
+} from "../lib/rostro";
+import { licenciaDemo } from "../lib/licencia-demo";
+import type { FaceBox } from "face-recognition-capacitor";
 
 // Debe coincidir con android/app/build.gradle (applicationId).
 // TEMPORAL porque la key demo va firmada contra el id de demo del vendor.
-const APP_ID = 'com.faceplugin.facerecognitionsdk';
+const APP_ID = "com.faceplugin.facerecognitionsdk";
 
 export default function Rostro() {
   const nativo = Capacitor.isNativePlatform();
-  const [machine, setMachine] = useState('...');
-  const [licencia, setLicencia] = useState('');
+  const [machine, setMachine] = useState("...");
+  const [licencia, setLicencia] = useState("");
   const [listo, setListo] = useState(false);
-  const [estado, setEstado] = useState('Sin activar');
+  const [estado, setEstado] = useState("Sin activar");
   const [foto, setFoto] = useState<string | null>(null);
   const [rostros, setRostros] = useState<FaceBox[]>([]);
   const [comparacion, setComparacion] = useState<number | null>(null);
@@ -74,7 +75,7 @@ export default function Rostro() {
   // Al entrar: machine code + licencia guardada (si ya se activó antes).
   useEffect(() => {
     if (!nativo) {
-      setLog('Estás en el navegador. Abre la app instalada en el teléfono.');
+      setLog("Estás en el navegador. Abre la app instalada en el teléfono.");
       return;
     }
     (async () => {
@@ -90,8 +91,8 @@ export default function Rostro() {
           setLog(
             r.ok
               ? guardada
-                ? 'Licencia guardada válida. Motor cargado.'
-                : 'Activación automática con la key del .env. Motor cargado.'
+                ? "Licencia guardada válida. Motor cargado."
+                : "Activación automática con la key del .env. Motor cargado."
               : r.mensaje,
           );
         }
@@ -105,14 +106,16 @@ export default function Rostro() {
   const copiarCodigo = async () => {
     try {
       await navigator.clipboard.writeText(machine);
-      setLog('Código copiado. Envíalo al proveedor junto con el applicationId.');
+      setLog(
+        "Código copiado. Envíalo al proveedor junto con el applicationId.",
+      );
     } catch {
       setLog(`Copia manual: ${machine}`);
     }
   };
 
   const activarLicencia = async () => {
-    setLog('Activando...');
+    setLog("Activando...");
     try {
       await guardarLicencia(licencia);
       const r = await activar(licencia);
@@ -130,29 +133,29 @@ export default function Rostro() {
 
   // Toma una foto con la cámara o elige una de la galería.
   // El SDK recibe SIEMPRE una URI nativa, nunca un blob del navegador.
-  const elegirFoto = async (origen: 'camara' | 'galeria') => {
+  const elegirFoto = async (origen: "camara" | "galeria") => {
     try {
       const photo = await Camera.getPhoto({
         quality: 90,
-        source: origen === 'camara' ? CameraSource.Camera : CameraSource.Photos,
+        source: origen === "camara" ? CameraSource.Camera : CameraSource.Photos,
         resultType: CameraResultType.Uri,
       });
       const uri = photo.path
-        ? photo.path.startsWith('file://') || photo.path.startsWith('content:')
+        ? photo.path.startsWith("file://") || photo.path.startsWith("content:")
           ? photo.path
           : `file://${photo.path}`
         : photo.webPath;
-      if (!uri) throw new Error('No se obtuvo la foto');
+      if (!uri) throw new Error("No se obtuvo la foto");
 
       setFoto(uri);
       setRostros([]);
       setComparacion(null);
-      setLog('Analizando imagen en el motor nativo...');
+      setLog("Analizando imagen en el motor nativo...");
       const r = await detectarRostros(uri);
       setRostros(r);
       setLog(
         r.length === 0
-          ? 'El motor no detectó rostros en la foto.'
+          ? "El motor no detectó rostros en la foto."
           : `Detectados ${r.length} rostro(s). Todo el análisis ocurrió en el dispositivo.`,
       );
     } catch (e) {
@@ -170,21 +173,18 @@ export default function Rostro() {
         resultType: CameraResultType.Uri,
       });
       const otra = photo.path ? `file://${photo.path}` : photo.webPath;
-      if (!otra) throw new Error('No se obtuvo la segunda foto');
+      if (!otra) throw new Error("No se obtuvo la segunda foto");
       const score = await compararRostros(foto, otra);
       setComparacion(score);
       setLog(
-        `Similitud ${score.toFixed(3)} · ${score >= 0.67 ? 'misma persona' : 'personas distintas'} (umbral 0.67)`,
+        `Similitud ${score.toFixed(3)} · ${score >= 0.67 ? "misma persona" : "personas distintas"} (umbral 0.67)`,
       );
     } catch (e) {
       setLog(`Error comparando: ${String(e)}`);
     }
   };
 
-  // UX DE DEMO "LLAVE QUEMADA": la key vive en .env y la página se auto-activa
-  // al abrir. Por eso los "pasos" (machine code + activación manual) NO van en
-  // la vista principal: quedan PLEGADOS en un acordeón, disponibles para el día
-  // en que se pida una licencia real al proveedor (se necesita el machine code).
+  // UX DE DEMO "LLAVE QUEMADA"
   const tarjetaDatosLicencia = (
     <IonAccordionGroup expand="inset">
       <IonAccordion value="licencia" toggleIconSlot="end">
@@ -200,7 +200,7 @@ export default function Rostro() {
             appId: <code>{APP_ID}</code>
           </IonNote>
           <IonText color="medium">
-            <p style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
+            <p style={{ fontFamily: "monospace", wordBreak: "break-all" }}>
               {machine}
             </p>
           </IonText>
@@ -208,7 +208,7 @@ export default function Rostro() {
             size="small"
             fill="outline"
             onClick={copiarCodigo}
-            disabled={!nativo || machine === '...'}
+            disabled={!nativo || machine === "..."}
           >
             <IonIcon slot="start" icon={copyOutline} />
             Copiar machine code
@@ -219,7 +219,7 @@ export default function Rostro() {
             autoGrow
             rows={3}
             value={licencia}
-            onIonInput={(e) => setLicencia(e.detail.value ?? '')}
+            onIonInput={(e) => setLicencia(e.detail.value ?? "")}
             placeholder="FP1...."
           />
           <IonButton
@@ -230,7 +230,7 @@ export default function Rostro() {
           >
             Guardar y activar
           </IonButton>
-          <IonText color={listo ? 'success' : 'danger'}>
+          <IonText color={listo ? "success" : "danger"}>
             <p>{estado}</p>
           </IonText>
         </div>
@@ -242,7 +242,9 @@ export default function Rostro() {
     <IonCard>
       <IonCardHeader>
         <IonCardSubtitle>
-          {listo ? 'Motor activo — detección disponible' : 'Esperando motor (auto-activación con la key del .env)…'}
+          {listo
+            ? "Motor activo — detección disponible"
+            : "Esperando motor (auto-activación con la key del .env)…"}
         </IonCardSubtitle>
         <IonCardTitle>
           <IonIcon icon={shieldCheckmarkOutline} /> Detección + liveness
@@ -255,7 +257,7 @@ export default function Rostro() {
         </p>
         <IonButton
           expand="block"
-          onClick={() => elegirFoto('camara')}
+          onClick={() => elegirFoto("camara")}
           disabled={!listo}
         >
           <IonIcon slot="start" icon={cameraOutline} />
@@ -264,7 +266,7 @@ export default function Rostro() {
         <IonButton
           expand="block"
           fill="outline"
-          onClick={() => elegirFoto('galeria')}
+          onClick={() => elegirFoto("galeria")}
           disabled={!listo}
         >
           <IonIcon slot="start" icon={imagesOutline} />
@@ -276,10 +278,10 @@ export default function Rostro() {
             src={Capacitor.convertFileSrc(foto)}
             alt="Rostro analizado"
             style={{
-              width: '100%',
+              width: "100%",
               borderRadius: 12,
               marginTop: 12,
-              display: 'block',
+              display: "block",
             }}
           />
         )}
@@ -291,7 +293,7 @@ export default function Rostro() {
                 <IonLabel>
                   <h3>Rostro {i + 1}</h3>
                   {resumenRostro(box).map((linea) => (
-                    <p key={linea} style={{ margin: '2px 0' }}>
+                    <p key={linea} style={{ margin: "2px 0" }}>
                       {linea}
                     </p>
                   ))}
@@ -302,17 +304,13 @@ export default function Rostro() {
         )}
 
         {rostros.length > 0 && (
-          <IonButton
-            expand="block"
-            fill="clear"
-            onClick={compararConOtra}
-          >
+          <IonButton expand="block" fill="clear" onClick={compararConOtra}>
             Comparar 1:1 con otra foto
           </IonButton>
         )}
 
         {comparacion !== null && (
-          <IonText color={comparacion >= 0.67 ? 'success' : 'medium'}>
+          <IonText color={comparacion >= 0.67 ? "success" : "medium"}>
             <p>Score 1:1: {comparacion.toFixed(3)}</p>
           </IonText>
         )}
@@ -328,9 +326,9 @@ export default function Rostro() {
             <IonBackButton defaultHref="/plugins" />
           </IonButtons>
           <IonTitle>
-            Rostro{' '}
-            <IonBadge color={listo ? 'success' : 'warning'}>
-              {listo ? 'motor listo' : 'sin licencia'}
+            Rostro{" "}
+            <IonBadge color={listo ? "success" : "warning"}>
+              {listo ? "motor listo" : "sin licencia"}
             </IonBadge>
           </IonTitle>
         </IonToolbar>

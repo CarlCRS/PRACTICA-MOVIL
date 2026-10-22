@@ -9,9 +9,10 @@
 // Toda la IA (ONNX + modelos frc.fpk) vive dentro del .aar.
 //
 // Requisito comercial: la licencia es OFFLINE y está firmada contra el
-// applicationId de la app + el código de máquina del equipo. Por eso aquí
-// se muestra el machine code: es lo que se le manda al proveedor para que
-// devuelva un FP1... válido para com.ejemplo.myapp.
+// applicationId de la app (y, en licencias de pago, el machine code). Por eso
+// aquí se muestra el machine code: es lo que se le manda al proveedor para que
+// devuelva un FP1... válido para tu applicationId. La key demo solo vale para
+// com.faceplugin.facerecognitionsdk.
 import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import {
