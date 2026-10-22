@@ -240,12 +240,6 @@ export default function Rostro() {
           </IonList>
         )}
 
-        {rostros.length > 0 && (
-          <IonButton expand="block" fill="clear" onClick={compararConOtra}>
-            Comparar 1:1 con otra foto
-          </IonButton>
-        )}
-
         {comparacion !== null && (
           <IonText color={comparacion >= 0.67 ? "success" : "medium"}>
             <p>Score 1:1: {comparacion.toFixed(3)}</p>
@@ -264,7 +258,9 @@ export default function Rostro() {
           </IonButtons>
           <IonTitle>
             Rostro{" "}
-            <IonBadge color={listo ? "success" : cargando ? "medium" : "warning"}>
+            <IonBadge
+              color={listo ? "success" : cargando ? "medium" : "warning"}
+            >
               {listo ? "motor listo" : cargando ? "iniciando" : "sin licencia"}
             </IonBadge>
           </IonTitle>
