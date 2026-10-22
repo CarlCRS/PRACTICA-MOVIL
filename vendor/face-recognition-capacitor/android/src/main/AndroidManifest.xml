@@ -1,7 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.CAMERA" />
 
-    <!-- El motor ONNX necesita heap grande. Declararlo aquí hace que se fusione
-         en el manifest de la app: no hay que tocar AndroidManifest.xml a mano. -->
+    <!-- largeHeap: el motor ONNX necesita heap grande. El manifest merger lo
+         fusiona en la app: no hay que tocar AndroidManifest.xml a mano.
+         (extractNativeLibs NO se puede fijar aquí: AGP lo inyecta desde
+         packaging.jniLibs.useLegacyPackaging en app/build.gradle.) -->
     <application android:largeHeap="true" />
 </manifest>

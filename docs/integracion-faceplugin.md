@@ -57,6 +57,7 @@ resuelve como módulo desde ese repositorio. **No hace falta** `include
 |---|---|---|
 | `AndroidManifest.xml` | `MODIFY_AUDIO_SETTINGS` | único permiso que ningún plugin declara (`CAMERA` y `RECORD_AUDIO` los aporta `@capgo/camera-preview`) |
 | `app/build.gradle` | `proguard-android-optimize.txt` | Capacitor genera `proguard-android.txt`, que AGP 9 ya no acepta |
+| `app/build.gradle` | `packaging.jniLibs.useLegacyPackaging = true` | el SDK carga sus `.so` con `System.load(nativeLibraryDir)`; AGP 9 no las extrae y `init()` devuelve 4 |
 | `variables.gradle` | `minSdk >= 24` | requisito del SDK |
 | `app/build.gradle` | sin `abiFilters` | el `.aar` trae `arm64-v8a` y `armeabi-v7a` |
 
@@ -108,6 +109,7 @@ el nativo emite eventos continuos al JS, no hay `await` por frame.
 | `code 1` | licencia de otro appId |
 | `code 2` | licencia expirada |
 | `code 4` / crash al init | falta el `.aar`, ABI equivocada o poca memoria |
+| `code 4` pero la licencia dice `LICENSE_OK` | `.so` sin extraer: falta `useLegacyPackaging = true` |
 | `not implemented on web` | estás en `localhost`, no en el teléfono |
 | emulador no arranca el motor | el `.aar` no trae `x86_64` |
 
@@ -144,11 +146,27 @@ cd android && .\gradlew.bat assembleDebug
 <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 ```
 
-**2) `android/app/build.gradle`** — ProGuard (AGP 9 rechaza el default de Capacitor):
+**2) `android/app/build.gradle`** — ProGuard y empaquetado de las `.so`:
 
 ```groovy
-proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+android {
+    // ...
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+    buildTypes {
+        release {
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
 ```
+
+`useLegacyPackaging = true` equivale a `extractNativeLibs="true"`: el SDK hace
+`System.load(nativeLibraryDir + "/lib*.so")` y, sin extracción, esa ruta no
+existe y `init()` devuelve `4` aunque la licencia sea válida (`LICENSE_OK`).
 
 Eso es todo. `largeHeap` viene del manifest del plugin y el `.aar` se resuelve
 solo desde `android/app/libs/`.
