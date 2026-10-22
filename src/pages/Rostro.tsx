@@ -1,17 +1,10 @@
 // DEMO DE INTEGRACIÓN DE UN SDK BIOMÉTRICO CERRADO (FacePlugin)
 //
-// Esta pantalla muestra las 3 fases reales de una integración así:
-//   1. Identificar el equipo   -> getMachineCode()
-//   2. Activar la licencia     -> setActivation() + init()
-//   3. Usar el motor           -> faceDetection() / templateExtraction()
-//
-// Ojo: sin licencia válida el paso 3 no funciona. La key demo del SDK solo
-// sirve para com.faceplugin.facerecognitionsdk (ver docs §8: para probar,
-// applicationId temporal = el de la demo y la key en .env).
+// Al entrar se activa el motor automáticamente (setActivation + init) con la
+// key de .env; un overlay con spinner cubre la espera. Sin licencia válida el
+// paso de detección no funciona.
 import { useEffect, useState } from "react";
 import {
-  IonAccordion,
-  IonAccordionGroup,
   IonBackButton,
   IonBadge,
   IonButton,
@@ -27,10 +20,9 @@ import {
   IonItem,
   IonLabel,
   IonList,
-  IonNote,
+  IonLoading,
   IonPage,
   IonText,
-  IonTextarea,
   IonTitle,
   IonToolbar,
 } from "@ionic/react";
@@ -38,10 +30,8 @@ import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 import { Capacitor } from "@capacitor/core";
 import {
   cameraOutline,
-  copyOutline,
-  fingerPrintOutline,
   imagesOutline,
-  keyOutline,
+  refreshOutline,
   shieldCheckmarkOutline,
 } from "ionicons/icons";
 import {
@@ -49,87 +39,86 @@ import {
   codigoMaquina,
   compararRostros,
   detectarRostros,
-  estadoLicencia,
-  guardarLicencia,
-  leerLicenciaGuardada,
   resumenRostro,
 } from "../lib/rostro";
 import { licenciaDemo } from "../lib/licencia-demo";
 import type { FaceBox } from "face-recognition-capacitor";
 
 // Debe coincidir con android/app/build.gradle (applicationId).
-// TEMPORAL porque la key demo va firmada contra el id de demo del vendor.
 const APP_ID = "com.faceplugin.facerecognitionsdk";
+
+// El motor vive en el proceso nativo: si ya arrancó en esta sesión, no hay
+// que repetir setActivation/init al volver a la página.
+let motorYaIniciado = false;
 
 export default function Rostro() {
   const nativo = Capacitor.isNativePlatform();
-  const [machine, setMachine] = useState("...");
-  const [licencia, setLicencia] = useState("");
-  const [listo, setListo] = useState(false);
-  const [estado, setEstado] = useState("Sin activar");
+  const [machine, setMachine] = useState("");
+  const [listo, setListo] = useState(motorYaIniciado);
+  const [cargando, setCargando] = useState(nativo && !motorYaIniciado);
+  const [mensajeCarga, setMensajeCarga] = useState("Preparando motor…");
+  const [error, setError] = useState<string | null>(null);
   const [foto, setFoto] = useState<string | null>(null);
   const [rostros, setRostros] = useState<FaceBox[]>([]);
   const [comparacion, setComparacion] = useState<number | null>(null);
-  const [log, setLog] = useState('Pulsa "Obtener código" para empezar.');
+  const [log, setLog] = useState("Preparando motor…");
 
-  // Al entrar: machine code + licencia guardada (si ya se activó antes).
+  // Activación automática: machine code -> setActivation -> init.
+  const activarAutomatico = async () => {
+    setCargando(true);
+    setError(null);
+    setListo(false);
+    setMensajeCarga("Leyendo el equipo…");
+    setLog("Leyendo el equipo…");
+
+    try {
+      const mc = await codigoMaquina();
+      setMachine(mc);
+
+      const key = licenciaDemo();
+      if (!key) {
+        throw new Error(
+          "No hay licencia configurada: agrega VITE_FACEPLUGIN_LICENSE_ANDROID en .env y recompila.",
+        );
+      }
+
+      setMensajeCarga("Activando licencia y cargando modelos…");
+      setLog("Activando licencia y cargando modelos (la primera vez tarda)…");
+
+      const r = await activar(key);
+      if (!r.ok) {
+        setError(r.mensaje);
+        setLog(r.mensaje);
+        return;
+      }
+
+      motorYaIniciado = true;
+      setListo(true);
+      setLog("Motor listo.");
+    } catch (e) {
+      const texto = e instanceof Error ? e.message : String(e);
+      setError(texto);
+      setLog(`Error: ${texto}`);
+    } finally {
+      setCargando(false);
+    }
+  };
+
   useEffect(() => {
     if (!nativo) {
+      setCargando(false);
       setLog("Estás en el navegador. Abre la app instalada en el teléfono.");
       return;
     }
-    (async () => {
-      try {
-        setMachine(await codigoMaquina());
-        const guardada = await leerLicenciaGuardada();
-        const key = guardada || licenciaDemo();
-        if (key) {
-          setLicencia(key);
-          const r = await activar(key);
-          setListo(r.ok);
-          setEstado(r.mensaje);
-          setLog(
-            r.ok
-              ? guardada
-                ? "Licencia guardada válida. Motor cargado."
-                : "Activación automática con la key del .env. Motor cargado."
-              : r.mensaje,
-          );
-        }
-      } catch (e) {
-        setLog(`Error: ${String(e)}`);
-      }
-    })();
+    if (motorYaIniciado) {
+      setCargando(false);
+      setListo(true);
+      setLog("Motor ya iniciado en esta sesión.");
+      return;
+    }
+    void activarAutomatico();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nativo]);
-
-  // Ya no hay tarjeta de máquina aparte: auto-activación + acordeón de licencia.
-  const copiarCodigo = async () => {
-    try {
-      await navigator.clipboard.writeText(machine);
-      setLog(
-        "Código copiado. Envíalo al proveedor junto con el applicationId.",
-      );
-    } catch {
-      setLog(`Copia manual: ${machine}`);
-    }
-  };
-
-  const activarLicencia = async () => {
-    setLog("Activando...");
-    try {
-      await guardarLicencia(licencia);
-      const r = await activar(licencia);
-      setListo(r.ok);
-      setEstado(r.mensaje);
-      setLog(
-        r.ok
-          ? `Motor listo. ${await estadoLicencia()}`
-          : `No se pudo activar: ${r.mensaje}`,
-      );
-    } catch (e) {
-      setLog(`Error activando: ${String(e)}`);
-    }
-  };
 
   // Toma una foto con la cámara o elige una de la galería.
   // El SDK recibe SIEMPRE una URI nativa, nunca un blob del navegador.
@@ -184,67 +173,15 @@ export default function Rostro() {
     }
   };
 
-  // UX DE DEMO "LLAVE QUEMADA"
-  const tarjetaDatosLicencia = (
-    <IonAccordionGroup expand="inset">
-      <IonAccordion value="licencia" toggleIconSlot="end">
-        <IonItem slot="header" lines="none">
-          <IonIcon icon={keyOutline} slot="start" />
-          <IonLabel>
-            <h2>Datos de licencia</h2>
-            <p>Machine code, key FP1 y activación manual</p>
-          </IonLabel>
-        </IonItem>
-        <div slot="content" className="ion-padding">
-          <IonNote>
-            appId: <code>{APP_ID}</code>
-          </IonNote>
-          <IonText color="medium">
-            <p style={{ fontFamily: "monospace", wordBreak: "break-all" }}>
-              {machine}
-            </p>
-          </IonText>
-          <IonButton
-            size="small"
-            fill="outline"
-            onClick={copiarCodigo}
-            disabled={!nativo || machine === "..."}
-          >
-            <IonIcon slot="start" icon={copyOutline} />
-            Copiar machine code
-          </IonButton>
-          <IonTextarea
-            label="Licencia"
-            labelPlacement="stacked"
-            autoGrow
-            rows={3}
-            value={licencia}
-            onIonInput={(e) => setLicencia(e.detail.value ?? "")}
-            placeholder="FP1...."
-          />
-          <IonButton
-            expand="block"
-            fill="outline"
-            onClick={activarLicencia}
-            disabled={!nativo || licencia.trim().length < 10}
-          >
-            Guardar y activar
-          </IonButton>
-          <IonText color={listo ? "success" : "danger"}>
-            <p>{estado}</p>
-          </IonText>
-        </div>
-      </IonAccordion>
-    </IonAccordionGroup>
-  );
-
   const tarjetaMotor = (
     <IonCard>
       <IonCardHeader>
         <IonCardSubtitle>
           {listo
             ? "Motor activo — detección disponible"
-            : "Esperando motor (auto-activación con la key del .env)…"}
+            : cargando
+              ? "Iniciando motor…"
+              : "Motor no disponible"}
         </IonCardSubtitle>
         <IonCardTitle>
           <IonIcon icon={shieldCheckmarkOutline} /> Detección + liveness
@@ -327,8 +264,8 @@ export default function Rostro() {
           </IonButtons>
           <IonTitle>
             Rostro{" "}
-            <IonBadge color={listo ? "success" : "warning"}>
-              {listo ? "motor listo" : "sin licencia"}
+            <IonBadge color={listo ? "success" : cargando ? "medium" : "warning"}>
+              {listo ? "motor listo" : cargando ? "iniciando" : "sin licencia"}
             </IonBadge>
           </IonTitle>
         </IonToolbar>
@@ -349,7 +286,39 @@ export default function Rostro() {
 
         {tarjetaMotor}
 
-        {tarjetaDatosLicencia}
+        {error && (
+          <IonCard color="danger">
+            <IonCardHeader>
+              <IonCardTitle>No se pudo iniciar el motor</IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+              <IonText color="light">
+                <p>{error}</p>
+              </IonText>
+              <IonText color="light">
+                <p
+                  style={{
+                    fontFamily: "monospace",
+                    fontSize: 12,
+                    wordBreak: "break-all",
+                  }}
+                >
+                  appId: {APP_ID}
+                  {machine ? ` · equipo: ${machine}` : ""}
+                </p>
+              </IonText>
+              <IonButton
+                color="light"
+                size="small"
+                onClick={activarAutomatico}
+                disabled={!nativo}
+              >
+                <IonIcon slot="start" icon={refreshOutline} />
+                Reintentar
+              </IonButton>
+            </IonCardContent>
+          </IonCard>
+        )}
 
         <IonCard>
           <IonCardHeader>
@@ -369,6 +338,13 @@ export default function Rostro() {
           </p>
         </IonText>
       </IonContent>
+
+      <IonLoading
+        isOpen={cargando}
+        message={mensajeCarga}
+        backdropDismiss={false}
+        spinner="crescent"
+      />
     </IonPage>
   );
 }
