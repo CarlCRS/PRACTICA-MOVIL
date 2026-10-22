@@ -107,11 +107,23 @@ export async function activar(licencia: string): Promise<ResultadoActivacion> {
   }
 
   const initCode = await init();
-  return {
-    ok: initCode === SDK_SUCCESS,
-    codigo: initCode,
-    mensaje: describirCodigo(initCode),
-  };
+  if (initCode !== SDK_SUCCESS) {
+    // init() devuelve 4 (SDK_INIT_FAILED) por varias causas: la extracción del
+    // pack (frc.fpk) falló o el motor nativo rechazó arrancar (p. ej. problema
+    // de licencia validado EN el init). lastLicenseError() informa de cuál.
+    let detalle = '';
+    try {
+      detalle = await lastLicenseError();
+    } catch {
+      /* no hay detalle disponible */
+    }
+    return {
+      ok: false,
+      codigo: initCode,
+      mensaje: `${describirCodigo(initCode)}${detalle ? ` · ${detalle}` : ''}`,
+    };
+  }
+  return { ok: true, codigo: initCode, mensaje: describirCodigo(initCode) };
 }
 
 export async function estadoLicencia(): Promise<string> {

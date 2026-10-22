@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "test.e2e": "cypress run",
     "test.unit": "vitest",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check:runtimes": "node scripts/check-runtimes.js",
+    "postinstall": "node scripts/check-runtimes.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",

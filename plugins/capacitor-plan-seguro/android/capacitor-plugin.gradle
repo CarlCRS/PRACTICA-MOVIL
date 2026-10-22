@@ -1,0 +1,7 @@
+// Config Android del plugin (library module).
+ext {
+    // Deben coincidir con las de la app host (compileSdk 35/36 según matriz).
+    compileSdkVersion = 36
+    targetSdkVersion = 36
+    minSdkVersion = 23
+}

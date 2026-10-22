@@ -1,0 +1,34 @@
+// Config Android del plugin (library module) — se aplica cuando haces
+// `npm i ../capacitor-plan-seguro && npx cap sync` desde la app.
+apply plugin: 'com.android.library'
+
+ext {
+    compileSdkVersion = 36   // matriz INGIF-1442: Android 15/16 → SDK 35/36
+    minSdkVersion = 23
+}
+
+android {
+    namespace "com.planseguro.plugin"
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.compileSdkVersion
+    }
+    // 16 KB page size (requisito Google Play): exige AGP 8.5.1+ y NDK r27+.
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
+}
+
+repositories {
+    google()
+    mavenCentral()
+}
+
+dependencies {
+    implementation project(':capacitor-android')
+    // Corrutinas: la dependencia EXACTA que te pide la matriz.
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1"
+}

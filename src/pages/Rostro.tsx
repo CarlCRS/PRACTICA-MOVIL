@@ -9,6 +9,8 @@
 // La demo pública del SDK trae una key atada a com.faceplugin.facerecognitionsdk.
 import { useEffect, useState } from 'react';
 import {
+  IonAccordion,
+  IonAccordionGroup,
   IonBackButton,
   IonBadge,
   IonButton,
@@ -51,9 +53,12 @@ import {
   leerLicenciaGuardada,
   resumenRostro,
 } from '../lib/rostro';
+import { licenciaDemo } from '../lib/licencia-demo';
 import type { FaceBox } from 'face-recognition-capacitor';
 
-const APP_ID = 'com.ejemplo.myapp';
+// Debe coincidir con android/app/build.gradle (applicationId).
+// TEMPORAL porque la key demo va firmada contra el id de demo del vendor.
+const APP_ID = 'com.faceplugin.facerecognitionsdk';
 
 export default function Rostro() {
   const nativo = Capacitor.isNativePlatform();
@@ -76,12 +81,19 @@ export default function Rostro() {
       try {
         setMachine(await codigoMaquina());
         const guardada = await leerLicenciaGuardada();
-        if (guardada) {
-          setLicencia(guardada);
-          const r = await activar(guardada);
+        const key = guardada || licenciaDemo();
+        if (key) {
+          setLicencia(key);
+          const r = await activar(key);
           setListo(r.ok);
           setEstado(r.mensaje);
-          setLog(r.ok ? 'Licencia guardada válida. Motor cargado.' : r.mensaje);
+          setLog(
+            r.ok
+              ? guardada
+                ? 'Licencia guardada válida. Motor cargado.'
+                : 'Activación automática con la key del .env. Motor cargado.'
+              : r.mensaje,
+          );
         }
       } catch (e) {
         setLog(`Error: ${String(e)}`);
@@ -89,16 +101,7 @@ export default function Rostro() {
     })();
   }, [nativo]);
 
-  const obtenerCodigo = async () => {
-    try {
-      const c = await codigoMaquina();
-      setMachine(c);
-      setLog(`Código de máquina: ${c}`);
-    } catch (e) {
-      setLog(String(e));
-    }
-  };
-
+  // Ya no hay tarjeta de máquina aparte: auto-activación + acordeón de licencia.
   const copiarCodigo = async () => {
     try {
       await navigator.clipboard.writeText(machine);
@@ -178,6 +181,145 @@ export default function Rostro() {
     }
   };
 
+  // UX DE DEMO "LLAVE QUEMADA": la key vive en .env y la página se auto-activa
+  // al abrir. Por eso los "pasos" (machine code + activación manual) NO van en
+  // la vista principal: quedan PLEGADOS en un acordeón, disponibles para el día
+  // en que se pida una licencia real al proveedor (se necesita el machine code).
+  const tarjetaDatosLicencia = (
+    <IonAccordionGroup expand="inset">
+      <IonAccordion value="licencia" toggleIconSlot="end">
+        <IonItem slot="header" lines="none">
+          <IonIcon icon={keyOutline} slot="start" />
+          <IonLabel>
+            <h2>Datos de licencia</h2>
+            <p>Machine code, key FP1 y activación manual</p>
+          </IonLabel>
+        </IonItem>
+        <div slot="content" className="ion-padding">
+          <IonNote>
+            appId: <code>{APP_ID}</code>
+          </IonNote>
+          <IonText color="medium">
+            <p style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
+              {machine}
+            </p>
+          </IonText>
+          <IonButton
+            size="small"
+            fill="outline"
+            onClick={copiarCodigo}
+            disabled={!nativo || machine === '...'}
+          >
+            <IonIcon slot="start" icon={copyOutline} />
+            Copiar machine code
+          </IonButton>
+          <IonTextarea
+            label="Licencia"
+            labelPlacement="stacked"
+            autoGrow
+            rows={3}
+            value={licencia}
+            onIonInput={(e) => setLicencia(e.detail.value ?? '')}
+            placeholder="FP1...."
+          />
+          <IonButton
+            expand="block"
+            fill="outline"
+            onClick={activarLicencia}
+            disabled={!nativo || licencia.trim().length < 10}
+          >
+            Guardar y activar
+          </IonButton>
+          <IonText color={listo ? 'success' : 'danger'}>
+            <p>{estado}</p>
+          </IonText>
+        </div>
+      </IonAccordion>
+    </IonAccordionGroup>
+  );
+
+  const tarjetaMotor = (
+    <IonCard>
+      <IonCardHeader>
+        <IonCardSubtitle>
+          {listo ? 'Motor activo — detección disponible' : 'Esperando motor (auto-activación con la key del .env)…'}
+        </IonCardSubtitle>
+        <IonCardTitle>
+          <IonIcon icon={shieldCheckmarkOutline} /> Detección + liveness
+        </IonCardTitle>
+      </IonCardHeader>
+      <IonCardContent>
+        <p>
+          La foto se envía como URI al nativo; vuelve un JSON con caja,
+          landmarks, pose, liveness, edad y género.
+        </p>
+        <IonButton
+          expand="block"
+          onClick={() => elegirFoto('camara')}
+          disabled={!listo}
+        >
+          <IonIcon slot="start" icon={cameraOutline} />
+          Tomar foto
+        </IonButton>
+        <IonButton
+          expand="block"
+          fill="outline"
+          onClick={() => elegirFoto('galeria')}
+          disabled={!listo}
+        >
+          <IonIcon slot="start" icon={imagesOutline} />
+          Elegir de galería
+        </IonButton>
+
+        {foto && (
+          <img
+            src={Capacitor.convertFileSrc(foto)}
+            alt="Rostro analizado"
+            style={{
+              width: '100%',
+              borderRadius: 12,
+              marginTop: 12,
+              display: 'block',
+            }}
+          />
+        )}
+
+        {rostros.length > 0 && (
+          <IonList inset>
+            {rostros.map((box, i) => (
+              <IonItem key={i}>
+                <IonLabel>
+                  <h3>Rostro {i + 1}</h3>
+                  {resumenRostro(box).map((linea) => (
+                    <p key={linea} style={{ margin: '2px 0' }}>
+                      {linea}
+                    </p>
+                  ))}
+                </IonLabel>
+              </IonItem>
+            ))}
+          </IonList>
+        )}
+
+        {rostros.length > 0 && (
+          <IonButton
+            expand="block"
+            fill="clear"
+            onClick={compararConOtra}
+          >
+            Comparar 1:1 con otra foto
+          </IonButton>
+        )}
+
+        {comparacion !== null && (
+          <IonText color={comparacion >= 0.67 ? 'success' : 'medium'}>
+            <p>Score 1:1: {comparacion.toFixed(3)}</p>
+          </IonText>
+        )}
+      </IonCardContent>
+    </IonCard>
+  );
+
   return (
     <IonPage>
       <IonHeader>
@@ -207,153 +349,9 @@ export default function Rostro() {
           </IonCard>
         )}
 
-        <IonCard>
-          <IonCardHeader>
-            <IonCardSubtitle>Paso 1 · Identificar el equipo</IonCardSubtitle>
-            <IonCardTitle>
-              <IonIcon icon={fingerPrintOutline} /> Código de máquina
-            </IonCardTitle>
-          </IonCardHeader>
-          <IonCardContent>
-            <p>
-              Es único por dispositivo y por <strong>applicationId</strong>.
-              Este es el dato que se envía al proveedor para que firme la
-              licencia.
-            </p>
-            <IonNote>
-              appId actual: <code>{APP_ID}</code>
-            </IonNote>
-            <IonText color="medium">
-              <p style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                {machine}
-              </p>
-            </IonText>
-            <IonButton expand="block" onClick={obtenerCodigo} disabled={!nativo}>
-              Obtener código
-            </IonButton>
-            <IonButton
-              expand="block"
-              fill="outline"
-              onClick={copiarCodigo}
-              disabled={!nativo || machine === '...'}
-            >
-              <IonIcon slot="start" icon={copyOutline} />
-              Copiar
-            </IonButton>
-          </IonCardContent>
-        </IonCard>
+        {tarjetaMotor}
 
-        <IonCard>
-          <IonCardHeader>
-            <IonCardSubtitle>Paso 2 · Activar</IonCardSubtitle>
-            <IonCardTitle>
-              <IonIcon icon={keyOutline} /> Licencia FP1…
-            </IonCardTitle>
-          </IonCardHeader>
-          <IonCardContent>
-            <p>
-              La licencia es offline y va firmada contra el appId. Sin una key
-              para <code>{APP_ID}</code> el motor nunca carga (código 1).
-            </p>
-            <IonTextarea
-              label="Licencia"
-              labelPlacement="stacked"
-              autoGrow
-              rows={3}
-              value={licencia}
-              onIonInput={(e) => setLicencia(e.detail.value ?? '')}
-              placeholder="FP1...."
-            />
-            <IonButton
-              expand="block"
-              onClick={activarLicencia}
-              disabled={!nativo || licencia.trim().length < 10}
-            >
-              Guardar y activar
-            </IonButton>
-            <IonText color={listo ? 'success' : 'danger'}>
-              <p>{estado}</p>
-            </IonText>
-          </IonCardContent>
-        </IonCard>
-
-        <IonCard>
-          <IonCardHeader>
-            <IonCardSubtitle>Paso 3 · Usar el motor</IonCardSubtitle>
-            <IonCardTitle>
-              <IonIcon icon={shieldCheckmarkOutline} /> Detección + liveness
-            </IonCardTitle>
-          </IonCardHeader>
-          <IonCardContent>
-            <p>
-              La foto se envía como URI al nativo; vuelve un JSON con caja,
-              landmarks, pose, liveness, edad y género.
-            </p>
-            <IonButton
-              expand="block"
-              onClick={() => elegirFoto('camara')}
-              disabled={!listo}
-            >
-              <IonIcon slot="start" icon={cameraOutline} />
-              Tomar foto
-            </IonButton>
-            <IonButton
-              expand="block"
-              fill="outline"
-              onClick={() => elegirFoto('galeria')}
-              disabled={!listo}
-            >
-              <IonIcon slot="start" icon={imagesOutline} />
-              Elegir de galería
-            </IonButton>
-
-            {foto && (
-              <img
-                src={Capacitor.convertFileSrc(foto)}
-                alt="Rostro analizado"
-                style={{
-                  width: '100%',
-                  borderRadius: 12,
-                  marginTop: 12,
-                  display: 'block',
-                }}
-              />
-            )}
-
-            {rostros.length > 0 && (
-              <IonList inset>
-                {rostros.map((box, i) => (
-                  <IonItem key={i}>
-                    <IonLabel>
-                      <h3>Rostro {i + 1}</h3>
-                      {resumenRostro(box).map((linea) => (
-                        <p key={linea} style={{ margin: '2px 0' }}>
-                          {linea}
-                        </p>
-                      ))}
-                    </IonLabel>
-                  </IonItem>
-                ))}
-              </IonList>
-            )}
-
-            {rostros.length > 0 && (
-              <IonButton
-                expand="block"
-                fill="clear"
-                onClick={compararConOtra}
-              >
-                Comparar 1:1 con otra foto
-              </IonButton>
-            )}
-
-            {comparacion !== null && (
-              <IonText color={comparacion >= 0.67 ? 'success' : 'medium'}>
-                <p>Score 1:1: {comparacion.toFixed(3)}</p>
-              </IonText>
-            )}
-          </IonCardContent>
-        </IonCard>
+        {tarjetaDatosLicencia}
 
         <IonCard>
           <IonCardHeader>
