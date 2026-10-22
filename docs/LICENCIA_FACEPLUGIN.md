@@ -10,7 +10,8 @@ El SDK funciona así: la licencia demo que viene "quemada" en los repos del vend
 
 ## Diagnóstico (qué descartamos, en orden)
 
-1. Build del AAR ✔ — módulo envoltorio `:libfacesdk` en `android/libfacesdk/`.
+1. Build del AAR ✔ — el `.aar` se resuelve desde `android/app/libs/`
+   (flatDir que Capacitor ya declara; sin módulos Gradle extra).
 2. Extracción del pack ✔ — `frc.fpk` (425 MB, cifrado FPK3) se extrae bien a
    `<noBackupFilesDir>/.fpr/frc`; `iris_fitter.xml` ausente es inocuo (`iris_enabled=0`).
 3. Activación ✔ — `setActivation` → 0; `activation.dat` creado; alias
@@ -97,7 +98,7 @@ Borrador de mensaje (la licencia viene firmada para el id que indiques):
 - **`FaceRecognition-Ionic-Capacitor`**: es el repo de origen del plugin vendored
   (`vendor/face-recognition-capacitor`). Su `example/src/license.ts` tiene la
   **misma key vencida** (idéntica a la del `.env`), y los binarios del motor no
-  están en GitHub (se bajan del Drive — ya hecho: AAR en `android/libfacesdk/`).
+  están en GitHub (se bajan del Drive — ya hecho: AAR en `android/app/libs/`).
   La integración en sí está bien; el único bloqueo es la licencia.
 
 ## Técnico: por qué el estado "licensed" no basta

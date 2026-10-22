@@ -15,7 +15,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const AAR = path.join("android", "libfacesdk", "facerecognitionsdk.aar");
+const AAR = path.join("android", "app", "libs", "facerecognitionsdk.aar");
 // Ubicación INCORRECTA: si el .aar queda en vendor/.../libs/, el buildscript
 // del vendor lo toma como "bundledAar" y el build falla con el error de AGP:
 //   "Direct local .aar file dependencies are not supported when building an AAR."

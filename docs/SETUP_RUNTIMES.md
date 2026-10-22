@@ -30,7 +30,7 @@ Vendored: `vendor/face-recognition-capacitor` (linkeado en `android/capacitor.se
 
 | Plataforma | Binario | Copiar EXACTAMENTE en | Descarga |
 |---|---|---|---|
-| Android | `facerecognitionsdk.aar` | `android/libfacesdk/` (módulo envoltorio, ver abajo) | [Drive Android](https://drive.google.com/drive/folders/1kpzYVv9Gbm_pEpDe9-x7FGB4NWZzvez0) |
+| Android | `facerecognitionsdk.aar` | `android/app/libs/` | [Drive Android](https://drive.google.com/drive/folders/1kpzYVv9Gbm_pEpDe9-x7FGB4NWZzvez0) |
 | iOS | `facerecognitionsdk.framework` | `vendor/face-recognition-capacitor/ios/Frameworks/` | [Drive iOS](https://drive.google.com/drive/folders/1PKmV-o7gq7s7dDtiNgXPfCi2ZlWaRy5H) |
 | iOS | `FaceRecognitionEngine.framework` | `vendor/face-recognition-capacitor/ios/Frameworks/` | (mismo pack) |
 | iOS | `onnxruntime.framework` | `vendor/face-recognition-capacitor/ios/Frameworks/` | (mismo pack) |
@@ -38,7 +38,7 @@ Vendored: `vendor/face-recognition-capacitor` (linkeado en `android/capacitor.se
 El pack Android viene con los modelos (`frc.fpk`) incluidos; el pack iOS trae los
 frameworks device arm64 (no corren en solator — prueba en teléfono físico).
 
-### ⚠️ Por qué el .aar va en `android/libfacesdk/` y NO en `vendor/.../libs/`
+### ⚠️ Por qué el .aar va en `android/app/libs/` y NO en `vendor/.../libs/`
 
 El plugin FacePlugin es un módulo **library** de Android. AGP **prohíbe** que un
 library dependa de un `.aar` local con `implementation files(...)`:
@@ -47,27 +47,18 @@ library dependa de un `.aar` local con `implementation files(...)`:
 Direct local .aar file dependencies are not supported when building an AAR.
 ```
 
-El propio vendor contempla la alternativa en su `build.gradle`:
+La solución (sin módulos Gradle extra) es que el `.aar` viva en la carpeta
+`android/app/libs/`: Capacitor ya declara en `app/build.gradle`:
 
 ```gradle
-else if (findProject(':libfacesdk') != null) {
-  implementation project(path: ':libfacesdk')
+repositories {
+  flatDir { dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs' }
 }
 ```
 
-La solución es un **módulo envoltorio** (patrón estándar de Gradle) que publica
-el `.aar` como artefacto de proyecto:
-
-1. Carpeta `android/libfacesdk/` con el `.aar` y este `build.gradle`:
-   ```gradle
-   configurations.maybeCreate('default')
-   artifacts.add('default', file('facerecognitionsdk.aar'))
-   ```
-2. Incluido en `android/settings.gradle`:
-   ```gradle
-   include ':libfacesdk'
-   project(':libfacesdk').projectDir = new File('./libfacesdk/')
-   ```
+y el vendor build.gradle lo resuelve con `implementation(name: 'facerecognitionsdk', ext: 'aar')`
+desde ese flatDir. **No** hace falta declarar `:libfacesdk` (el patrón anterior del
+módulo envoltorio quedó obsoleto).
 
 Si el `.aar` queda en `vendor/.../android/libs/`, el vendor lo usa como
 "bundledAar" (ramificación de mayor prioridad) y el build vuelve a fallar con el
@@ -78,7 +69,7 @@ error de arriba. **Muévelo, no lo copies.**
 ```bash
 # 1. Descarga el AAR del Drive (uniforme, navegador — drive no admite curl sin cookies)
 # 2. Colócalo:
-#    android\libfacesdk\facerecognitionsdk.aar
+#    android\app\libs\facerecognitionsdk.aar
 #    (NO en vendor\...\android\libs\ — ver advertencia abajo)
 # 3. Verifica:
 node scripts/check-runtimes.js
@@ -146,8 +137,8 @@ Constantes reales en `libFaceRecognitionSDK.so`: `LICENSE_OK`,
 
 | Síntoma | Causa probable | Fix |
 |---|---|---|
-| `Missing facerecognitionsdk.aar` en Gradle | AAR no copiado a `android/libfacesdk/` ni incluido en `settings.gradle` | mover el .aar + incluir `:libfacesdk` |
-| `Direct local .aar file dependencies are not supported...` | el .aar quedó en `vendor/.../android/libs/` (bundledAar tiene prioridad) | moverlo a `android/libfacesdk/` (no copiarlo) |
+| `Missing facerecognitionsdk.aar` en Gradle | AAR no copiado a `android/app/libs/` | mover el .aar ahí |
+| `Direct local .aar file dependencies are not supported...` | el .aar quedó en `vendor/.../android/libs/` (bundledAar tiene prioridad) | moverlo a `android/app/libs/` (no copiarlo) |
 | Ionic corre en web pero nada nativo | `npx cap sync` no se ejecutó | sync + rebuild |
 | Gradle timeout / HTTP 403 al primer build | proxy/VPN corte | prueba de nuevo; borra `~/.gradle/caches` |
 | AAR compilado pero crash al runtime: `frc.fpk not found` | pack descargado incompleto | re-descargar completo (con modelos) |
